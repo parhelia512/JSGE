@@ -5066,7 +5066,9 @@ public abstract class EngineFrame extends JFrame {
     //**************************************************************************
     // Methods for sound and music control
     //**************************************************************************
-    
+
+    private static double masterVolume = 1.0;
+
     /**
      * Loads a sound from a file.
      * 
@@ -5105,7 +5107,41 @@ public abstract class EngineFrame extends JFrame {
     public static void playSound( Sound sound ) {
         sound.play();
     }
-    
+
+    /**
+     * Sets the volume of a sound.
+     *
+     * @param sound The sound.
+     * @param volume The sound volume, ranging from 0.0 to 1.0.
+     */
+    public static void setSoundVolume( Sound sound, double volume ) {
+        sound.setVolume( volume );
+    }
+
+    /**
+     * Sets the stereo panning of a sound. Panning requires a stereo audio
+     * source; mono audio cannot be panned.
+     *
+     * @param sound The sound.
+     * @param pan The panning of the sound, ranging from -1.0 (left) to 1.0
+     * (right), where 0.0 is the center.
+     */
+    public static void setSoundPan( Sound sound, double pan ) {
+        sound.setPan( pan );
+    }
+
+    /**
+     * Sets the pitch of a sound. The pitch also changes the playback speed.
+     * Pitch is not supported for OGG/Vorbis audio; it works with PCM (WAV) and
+     * MP3.
+     *
+     * @param sound The sound.
+     * @param pitch The pitch of the sound, where 1.0 is the original pitch.
+     */
+    public static void setSoundPitch( Sound sound, double pitch ) {
+        sound.setPitch( pitch );
+    }
+
     /**
      * Loads music from a file.
      * 
@@ -5230,39 +5266,109 @@ public abstract class EngineFrame extends JFrame {
     public void setMusicVolume( Music music, double volume ) {
         music.setVolume( volume );
     }
-    
+
+    /**
+     * Sets the stereo panning of the music. Panning requires a stereo audio
+     * source; mono audio cannot be panned.
+     *
+     * @param music The music.
+     * @param pan The panning of the music, ranging from -1.0 (left) to 1.0
+     * (right), where 0.0 is the center.
+     */
+    public void setMusicPan( Music music, double pan ) {
+        music.setPan( pan );
+    }
+
+    /**
+     * Sets the pitch of the music. The pitch also changes the playback speed.
+     * Pitch is not supported for OGG/Vorbis audio; it works with PCM (WAV) and
+     * MP3.
+     *
+     * @param music The music.
+     * @param pitch The pitch of the music, where 1.0 is the original pitch.
+     */
+    public void setMusicPitch( Music music, double pitch ) {
+        music.setPitch( pitch );
+    }
+
+    /**
+     * Sets whether the music should restart automatically when it reaches its
+     * end.
+     *
+     * @param music The music.
+     * @param looping True to loop the music, false otherwise.
+     */
+    public void setMusicLooping( Music music, boolean looping ) {
+        music.setLooping( looping );
+    }
+
+    /**
+     * Checks whether the music is set to loop.
+     *
+     * @param music The music.
+     * @return True if the music is set to loop, false otherwise.
+     */
+    public boolean isMusicLooping( Music music ) {
+        return music.isLooping();
+    }
+
     /**
      * Seeks to a position in the music.
      * 
      * @param music The music.
      * @param position Position in seconds of the desired moment.
      */
-    public static void seekMusic( Music music, int position ) {
+    public static void seekMusic( Music music, double position ) {
         music.seek( position );
     }
-    
+
     /**
      * Gets the duration of the music.
-     * 
+     *
      * @param music The music.
      * @return Duration of the music in seconds.
      */
-    public static int getMusicTimeLength( Music music ) {
+    public static double getMusicTimeLength( Music music ) {
         return music.getTimeLength();
     }
-    
+
     /**
      * Gets the playback time of the music.
-     * 
+     *
      * @param music The music.
      * @return The playback time in seconds.
      */
-    public int getMusicTimePlayed( Music music ) {
+    public double getMusicTimePlayed( Music music ) {
         return music.getTimePlayed();
     }
-    
-    
-    
+
+    /**
+     * Sets the master volume, affecting every sound and music. The master
+     * volume is combined with each asset's own volume.
+     *
+     * @param volume The master volume, ranging from 0.0 to 1.0.
+     */
+    public static void setMasterVolume( double volume ) {
+        if ( volume < 0.0 ) {
+            volume = 0.0;
+        } else if ( volume > 1.0 ) {
+            volume = 1.0;
+        }
+        masterVolume = volume;
+        Music.refreshMasterVolume();
+    }
+
+    /**
+     * Gets the master volume.
+     *
+     * @return The master volume, ranging from 0.0 to 1.0.
+     */
+    public static double getMasterVolume() {
+        return masterVolume;
+    }
+
+
+
     //**************************************************************************
     // Private inner classes.
     //**************************************************************************

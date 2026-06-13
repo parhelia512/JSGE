@@ -19,11 +19,17 @@ package br.com.davidbuzatto.jsge.sound;
 import br.com.davidbuzatto.jsge.core.engine.EngineFrame;
 import br.com.davidbuzatto.jsge.math.MathUtils;
 import br.com.davidbuzatto.jsge.core.utils.CoreUtils;
+import com.goxr3plus.streamplayer.enums.Status;
 import com.goxr3plus.streamplayer.stream.StreamPlayer;
+import com.goxr3plus.streamplayer.stream.StreamPlayerEvent;
 import com.goxr3plus.streamplayer.stream.StreamPlayerException;
+import com.goxr3plus.streamplayer.stream.StreamPlayerListener;
 import java.io.File;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.sound.sampled.FloatControl;
@@ -42,35 +48,35 @@ public class Music {
         }
     }
     
-    private static ExecutorService executor = Executors.newFixedThreadPool( 10 );
-    
-    private class InternalPlayer extends StreamPlayer {
-        
+    private class InternalPlayer extends StreamPlayer implements StreamPlayerListener {
+
         File file;
         InputStream is;
         URL url;
-        
+
         InternalPlayer() {
             getOutlet().setGainControl( new GainControl() );
+            addStreamPlayerListener( this );
         }
-        
+
         InternalPlayer( File file ) {
             this();
             this.file = file;
         }
-        
+
         InternalPlayer( InputStream is ) {
             this();
             this.is = is;
         }
-        
+
         InternalPlayer( URL url ) {
             this();
             this.url = url;
         }
-        
+
         void playNow() {
             try {
+                setSpeedFactor( pitch );
                 boolean ok = false;
                 if ( file != null ) {
                     open( file );
@@ -84,47 +90,93 @@ public class Music {
                 }
                 if ( ok ) {
                     play();
+                    applyPlaybackSettings();
                 }
             } catch ( StreamPlayerException exc ) {
                 EngineFrame.traceLogError(CoreUtils.stackTraceToString( exc ) );
             }
         }
-        
+
+        void applyPlaybackSettings() {
+            setGain( getEffectiveGain() );
+            setBalance( (float) pan );
+            setPan( pan );
+        }
+
+        @Override
+        public void opened( Object o, Map<String, Object> map ) {
+        }
+
+        @Override
+        public void progress( int i, long l, byte[] bytes, Map<String, Object> map ) {
+        }
+
+        @Override
+        public void statusUpdated( StreamPlayerEvent spe ) {
+            if ( spe.getPlayerStatus() == Status.EOM && looping ) {
+                executor.execute( () -> {
+                    playNow();
+                });
+            }
+        }
+
     }
-    
+
+    private static ExecutorService executor = Executors.newFixedThreadPool( 10 );
+    private static final List<Music> ACTIVE_MUSIC = new CopyOnWriteArrayList<>();
+
     private InternalPlayer internalPlayer;
+    private double volume;
+    private double pan;
+    private double pitch;
+    private boolean looping;
     
+    /**
+     * Puts the music in a valid state.
+     */
+    private Music() {
+        this.volume = 1.0;
+        this.pan = 0.0;
+        this.pitch = 1.0;
+        this.looping = false;
+        ACTIVE_MUSIC.add( this );
+    }
+
     /**
      * Creates a music track using the file path.
      *
      * @param filePath Path to the file.
      */
     public Music( String filePath ) {
+        this();
         internalPlayer = new InternalPlayer( new File( filePath ) );
     }
-    
+
     /**
      * Creates a music track using an input stream.
      *
      * @param is Input stream.
      */
     public Music( InputStream is ) {
+        this();
         internalPlayer = new InternalPlayer( is );
     }
-    
+
     /**
      * Creates a music track using a URL.
      *
      * @param url URL
      */
     public Music( URL url ) {
+        this();
         internalPlayer = new InternalPlayer( url );
     }
-    
+
     /**
      * Unloads a music track, releasing its resources.
      */
     public void unload() {
+        ACTIVE_MUSIC.remove( this );
         internalPlayer.reset();
     }
     
@@ -200,42 +252,117 @@ public class Music {
      * @param volume The volume of the music track, ranging from 0.0 to 1.0.
      */
     public void setVolume( double volume ) {
-        volume = MathUtils.clamp( volume, 0.01, 1.0 );
-        if ( volume <= 0.01 ) {
-            volume = 0;
+        this.volume = MathUtils.clamp( volume, 0.0, 1.0 );
+        applyVolume();
+    }
+
+    /**
+     * Sets the stereo panning of the music track. Panning requires a stereo
+     * audio source; mono audio cannot be panned.
+     *
+     * @param pan The panning of the music track, ranging from -1.0 (left) to
+     * 1.0 (right), where 0.0 is the center.
+     */
+    public void setPan( double pan ) {
+        this.pan = MathUtils.clamp( pan, -1.0, 1.0 );
+        internalPlayer.setBalance( (float) this.pan );
+        internalPlayer.setPan( this.pan );
+    }
+
+    /**
+     * Sets the pitch of the music track. The pitch also changes the playback
+     * speed. As the pitch is defined while the audio line is being created, a
+     * change only takes effect the next time the track starts playing. Pitch is
+     * not supported for OGG/Vorbis audio; it works with PCM (WAV) and MP3.
+     *
+     * @param pitch The pitch of the music track, where 1.0 is the original
+     * pitch.
+     */
+    public void setPitch( double pitch ) {
+        this.pitch = pitch < 0.0 ? 0.0 : pitch;
+        internalPlayer.setSpeedFactor( this.pitch );
+    }
+
+    /**
+     * Sets whether the music track should restart automatically when it
+     * reaches its end.
+     *
+     * @param looping True to loop the music track, false otherwise.
+     */
+    public void setLooping( boolean looping ) {
+        this.looping = looping;
+    }
+
+    /**
+     * Checks whether the music track is set to loop.
+     *
+     * @return True if the music track is set to loop, false otherwise.
+     */
+    public boolean isLooping() {
+        return looping;
+    }
+
+    /**
+     * Computes the effective gain of the music track, combining its own volume
+     * with the engine master volume.
+     *
+     * @return The effective gain, ranging from 0.0 to 1.0.
+     */
+    private double getEffectiveGain() {
+        double gain = volume * EngineFrame.getMasterVolume();
+        if ( gain <= 0.01 ) {
+            gain = 0;
         }
-        internalPlayer.setGain( volume );
+        return gain;
+    }
+
+    /**
+     * Applies the current effective gain to the internal player.
+     */
+    private void applyVolume() {
+        internalPlayer.setGain( getEffectiveGain() );
+    }
+
+    /**
+     * Reapplies the effective gain of every active music track. Used by the
+     * engine when the master volume changes.
+     */
+    public static void refreshMasterVolume() {
+        for ( Music music : ACTIVE_MUSIC ) {
+            music.applyVolume();
+        }
     }
     
     /**
-     * Seeks to a position in the music track.
+     * Seeks to a position in the music track. The underlying player seeks in
+     * whole seconds, so the fractional part of the position is discarded.
      *
      * @param position Position in seconds of the desired moment.
      */
-    public void seek( int position ) {
+    public void seek( double position ) {
         try {
-            internalPlayer.seekTo( position );
+            internalPlayer.seekTo( (int) position );
         } catch ( StreamPlayerException exc ) {
             EngineFrame.traceLogError(CoreUtils.stackTraceToString( exc ) );
         }
     }
-    
+
     /**
      * Gets the duration of the music track.
      *
      * @return Duration of the music track in seconds.
      */
-    public int getTimeLength() {
-        return internalPlayer.getDurationInSeconds();
+    public double getTimeLength() {
+        return internalPlayer.getDurationInMilliseconds() / 1000.0;
     }
-    
+
     /**
      * Gets the elapsed playback time of the music track.
      *
      * @return The elapsed playback time in seconds.
      */
-    public int getTimePlayed() {
-        return (int) ( internalPlayer.getEncodedStreamPosition() / (double) internalPlayer.getTotalBytes() * internalPlayer.getDurationInSeconds() );
+    public double getTimePlayed() {
+        return internalPlayer.getEncodedStreamPosition() / (double) internalPlayer.getTotalBytes() * ( internalPlayer.getDurationInMilliseconds() / 1000.0 );
     }
     
 }

@@ -18,6 +18,7 @@ package br.com.davidbuzatto.jsge.sound;
 
 import br.com.davidbuzatto.jsge.core.engine.EngineFrame;
 import br.com.davidbuzatto.jsge.core.utils.CoreUtils;
+import br.com.davidbuzatto.jsge.math.MathUtils;
 import com.goxr3plus.streamplayer.enums.Status;
 import com.goxr3plus.streamplayer.stream.StreamPlayer;
 import com.goxr3plus.streamplayer.stream.StreamPlayerEvent;
@@ -44,8 +45,6 @@ public class Sound {
             super( FloatControl.Type.MASTER_GAIN, 0.0f, 1.0f, 0.1f, 1, 1.0f, "" );
         }
     }
-    
-    private static ExecutorService executor = Executors.newFixedThreadPool( 10 );
     
     private class InternalPlayer extends StreamPlayer implements StreamPlayerListener {
         
@@ -75,29 +74,41 @@ public class Sound {
         
         void playWithFile() {
             try {
+                setSpeedFactor( pitch );
                 open( file );
                 play();
+                applyPlaybackSettings();
             } catch ( StreamPlayerException exc ) {
                 EngineFrame.traceLogError( CoreUtils.stackTraceToString( exc ) );
             }
         }
-        
+
         void playWithInputStream() {
             try {
+                setSpeedFactor( pitch );
                 open( is );
                 play();
+                applyPlaybackSettings();
             } catch ( StreamPlayerException exc ) {
                 EngineFrame.traceLogError( CoreUtils.stackTraceToString( exc ) );
             }
         }
-        
+
         void playWithUrl() {
             try {
+                setSpeedFactor( pitch );
                 open( url );
                 play();
+                applyPlaybackSettings();
             } catch ( StreamPlayerException exc ) {
                EngineFrame.traceLogError( CoreUtils.stackTraceToString( exc ) );
             }
+        }
+
+        void applyPlaybackSettings() {
+            setGain( volume * EngineFrame.getMasterVolume() );
+            setBalance( (float) pan );
+            setPan( pan );
         }
 
         @Override
@@ -117,34 +128,52 @@ public class Sound {
         
     }
     
+    private static ExecutorService executor = Executors.newFixedThreadPool( 10 );
+    
     private File file;
     private InputStream is;
     private URL url;
-    
+
+    private double volume;
+    private double pan;
+    private double pitch;
+
+    /**
+     * Puts the sound in a valid state.
+     */
+    private Sound() {
+        this.volume = 1.0;
+        this.pan = 0.0;
+        this.pitch = 1.0;
+    }
+
     /**
      * Creates a sound using the file path.
      *
      * @param filePath Path to the file.
      */
     public Sound( String filePath ) {
+        this();
         this.file = new File( filePath );
     }
-    
+
     /**
      * Creates a sound using an input stream.
      *
      * @param is Input stream.
      */
     public Sound( InputStream is ) {
+        this();
         this.is = is;
     }
-    
+
     /**
      * Creates a sound using a URL.
      *
      * @param url URL.
      */
     public Sound( URL url ) {
+        this();
         this.url = url;
     }
     
@@ -165,5 +194,36 @@ public class Sound {
             }
         });
     }
-    
+
+    /**
+     * Sets the volume of the sound.
+     *
+     * @param volume The volume of the sound, ranging from 0.0 to 1.0.
+     */
+    public void setVolume( double volume ) {
+        this.volume = MathUtils.clamp( volume, 0.0, 1.0 );
+    }
+
+    /**
+     * Sets the stereo panning of the sound. Panning requires a stereo audio
+     * source; mono audio cannot be panned.
+     *
+     * @param pan The panning of the sound, ranging from -1.0 (left) to 1.0
+     * (right), where 0.0 is the center.
+     */
+    public void setPan( double pan ) {
+        this.pan = MathUtils.clamp( pan, -1.0, 1.0 );
+    }
+
+    /**
+     * Sets the pitch of the sound. The pitch also changes the playback speed.
+     * Pitch is not supported for OGG/Vorbis audio; it works with PCM (WAV) and
+     * MP3.
+     *
+     * @param pitch The pitch of the sound, where 1.0 is the original pitch.
+     */
+    public void setPitch( double pitch ) {
+        this.pitch = pitch < 0.0 ? 0.0 : pitch;
+    }
+
 }
