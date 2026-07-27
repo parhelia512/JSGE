@@ -225,62 +225,68 @@ public class GuiList extends GuiComponent {
     }
     
     private void drawList( Color borderColor, Color containerColor ) {
-        
-        //engine.fillRectangle( scrollBar.bounds, scrollBarTrackColor );
-        engine.fillRectangle( bounds, containerColor );
-        
-        engine.beginScissorMode( bounds );
-        
+
+        // when the scroll bar isn't needed, the list reclaims the width
+        // reserved for it instead of leaving an empty gap
+        double width = useScrollBar ? bounds.width : bounds.width + scrollBar.bounds.width;
+        Rectangle contentBounds = new Rectangle( bounds.x, bounds.y, width, bounds.height );
+
+        engine.fillRectangle( contentBounds, containerColor );
+
+        engine.beginScissorMode( contentBounds );
+
         for ( ListItem item : items ) {
             item.draw();
         }
-        
+
         engine.endScissorMode();
-        
+
         if ( useScrollBar ) {
             scrollBar.draw();
         }
-        
+
         engine.drawRectangle( bounds.x, bounds.y, bounds.width + scrollBar.bounds.width, bounds.height, borderColor );
-        
+
     }
-    
+
     private void createItems() {
-        
+
         if ( !itemsText.isEmpty() && items.isEmpty() ) {
-            
+
             itemTextHeight = engine.measureTextBounds( " ", FONT_SIZE ).height;
+
+            double estimatedItemsHeight = 3 + ( itemsText.size() - 1 ) * ( ITEM_BOUND_HEIGHT + 3 ) + ITEM_BOUND_HEIGHT;
+            useScrollBar = estimatedItemsHeight > bounds.height;
+
+            double itemWidth = ( useScrollBar ? bounds.width : bounds.width + scrollBar.bounds.width ) - 6;
             double vOffset = 0;
             boolean first = true;
 
             for ( String text : itemsText ) {
-                items.add( 
-                        new ListItem( 
-                                text, 
-                                new Rectangle( bounds.x + 3, bounds.y + 3 + vOffset, bounds.width - 6, ITEM_BOUND_HEIGHT ),
+                items.add(
+                        new ListItem(
+                                text,
+                                new Rectangle( bounds.x + 3, bounds.y + 3 + vOffset, itemWidth, ITEM_BOUND_HEIGHT ),
                                 first
                         )
                 );
                 vOffset += ITEM_BOUND_HEIGHT + 3;
                 first = false;
             }
-            
+
             // JDK 21 and later :D
             //Rectangle lastItemBounds = items.getLast().bounds;
-            
+
             Rectangle lastItemBounds = items.get( items.size() - 1 ).bounds;
             itemsHeight = lastItemBounds.y + lastItemBounds.height - bounds.y;
             heightDiff = itemsHeight - bounds.height + 3;
 
-            if ( lastItemBounds.y + lastItemBounds.height > bounds.y + bounds.height ) {
-                useScrollBar = true;
-            } else {
-                useScrollBar = false;
+            if ( !useScrollBar ) {
                 scrollBar.setEnabled( false );
             }
-            
+
             initialized = true;
-            
+
         }
         
         if ( !initialized ) {

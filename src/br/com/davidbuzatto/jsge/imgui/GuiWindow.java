@@ -363,15 +363,23 @@ public class GuiWindow extends GuiTextComponent {
         
         w += ( DIALOG_CONTENT_PADDING / 2 ) * ( b - 1 );
         double start = bounds.x + bounds.width / 2 - w / 2;
-        
+
+        // skips hidden (empty text) buttons instead of counting their stale
+        // bounds towards the accumulated position
+        boolean first = true;
         for ( int i = 0; i < buttons.length; i++ ) {
-            if ( i != 0 ) {
-                start += buttons[i-1].bounds.width + DIALOG_CONTENT_PADDING / 2;
+            if ( buttons[i].text.isEmpty() ) {
+                continue;
+            }
+            if ( !first ) {
+                start += DIALOG_CONTENT_PADDING / 2;
             }
             buttons[i].bounds.x = start;
             buttons[i].bounds.y = bounds.y + bounds.height - DIALOG_CONTENT_PADDING - buttons[i].bounds.height;
+            start += buttons[i].bounds.width;
+            first = false;
         }
-        
+
     }
     
     @Override
