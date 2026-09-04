@@ -106,10 +106,8 @@ import javax.imageio.stream.ImageOutputStream;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
-import net.java.games.input.Component;
-import net.java.games.input.Component.Identifier;
-import net.java.games.input.Controller;
-import net.java.games.input.ControllerEnvironment;
+import org.libsdl.SDL;
+import org.libsdl.SDL_GameController;
 
 /**
  * Simple engine for creating games or simulations using Java 2D.
@@ -557,6 +555,10 @@ public abstract class EngineFrame extends JFrame {
                 }
 
             }
+
+            // not reached when the window closes via EXIT_ON_CLOSE/ESC (System.exit(0));
+            // the OS reclaims native resources in that case
+            gpInputManager.shutdown();
 
         }).start();
 
@@ -4701,21 +4703,13 @@ public abstract class EngineFrame extends JFrame {
     /**
      * Returns whether a gamepad button was pressed once.
      * 
-     * Note: the entire gamepad management mechanism is based on an
-     * implementation where the bottom triggers, both left (L2/LT)
-     * and right (R2/RT), work by varying the Z axis in the range -1.0 to 1.0.
-     * Using old/standard controllers for Windows.
-     * 
-     * The left trigger varies Z from 0.0 (not pressed) to 1.0 (fully pressed).
-     * The right trigger varies Z from 0.0 (not pressed) to -1.0 (fully pressed).
-     * 
-     * When both triggers are not pressed, the Z value is 0.0, and
-     * when both are fully pressed, the Z value is also 0.0, since
-     * they cancel each other out.
-     * 
-     * Therefore, pressed/not-pressed checks do not work
-     * properly for these buttons.
-     * 
+     * The rear triggers (L2/LT and R2/RT) are independent analog inputs.
+     * Their pressure is available through {@link #GAMEPAD_AXIS_LEFT_TRIGGER}
+     * and {@link #GAMEPAD_AXIS_RIGHT_TRIGGER} (0.0 released .. 1.0 fully pressed);
+     * as buttons ({@link #GAMEPAD_BUTTON_LEFT_TRIGGER_2},
+     * {@link #GAMEPAD_BUTTON_RIGHT_TRIGGER_2}) they report pressed once the
+     * pressure reaches 0.5.
+     *
      * @param gamepadId The gamepad identifier.
      * @param button The button.
      * @return True if the button was pressed once, false otherwise.
@@ -4728,21 +4722,13 @@ public abstract class EngineFrame extends JFrame {
      * Returns whether a gamepad button is currently pressed.
      * 
      * 
-     * Note: the entire gamepad management mechanism is based on an
-     * implementation where the bottom triggers, both left (L2/LT)
-     * and right (R2/RT), work by varying the Z axis in the range -1.0 to 1.0.
-     * Using old/standard controllers for Windows.
-     * 
-     * The left trigger varies Z from 0.0 (not pressed) to 1.0 (fully pressed).
-     * The right trigger varies Z from 0.0 (not pressed) to -1.0 (fully pressed).
-     * 
-     * When both triggers are not pressed, the Z value is 0.0, and
-     * when both are fully pressed, the Z value is also 0.0, since
-     * they cancel each other out.
-     * 
-     * Therefore, pressed/not-pressed checks do not work
-     * properly for these buttons.
-     * 
+     * The rear triggers (L2/LT and R2/RT) are independent analog inputs.
+     * Their pressure is available through {@link #GAMEPAD_AXIS_LEFT_TRIGGER}
+     * and {@link #GAMEPAD_AXIS_RIGHT_TRIGGER} (0.0 released .. 1.0 fully pressed);
+     * as buttons ({@link #GAMEPAD_BUTTON_LEFT_TRIGGER_2},
+     * {@link #GAMEPAD_BUTTON_RIGHT_TRIGGER_2}) they report pressed once the
+     * pressure reaches 0.5.
+     *
      * @param gamepadId The gamepad identifier.
      * @param button The button.
      * @return True if the button is pressed, false otherwise.
@@ -4754,21 +4740,13 @@ public abstract class EngineFrame extends JFrame {
     /**
      * Returns whether a gamepad button was released.
      * 
-     * Note: the entire gamepad management mechanism is based on an
-     * implementation where the bottom triggers, both left (L2/LT)
-     * and right (R2/RT), work by varying the Z axis in the range -1.0 to 1.0.
-     * Using old/standard controllers for Windows.
-     * 
-     * The left trigger varies Z from 0.0 (not pressed) to 1.0 (fully pressed).
-     * The right trigger varies Z from 0.0 (not pressed) to -1.0 (fully pressed).
-     * 
-     * When both triggers are not pressed, the Z value is 0.0, and
-     * when both are fully pressed, the Z value is also 0.0, since
-     * they cancel each other out.
-     * 
-     * Therefore, pressed/not-pressed checks do not work
-     * properly for these buttons.
-     * 
+     * The rear triggers (L2/LT and R2/RT) are independent analog inputs.
+     * Their pressure is available through {@link #GAMEPAD_AXIS_LEFT_TRIGGER}
+     * and {@link #GAMEPAD_AXIS_RIGHT_TRIGGER} (0.0 released .. 1.0 fully pressed);
+     * as buttons ({@link #GAMEPAD_BUTTON_LEFT_TRIGGER_2},
+     * {@link #GAMEPAD_BUTTON_RIGHT_TRIGGER_2}) they report pressed once the
+     * pressure reaches 0.5.
+     *
      * @param gamepadId The gamepad identifier.
      * @param button The button.
      * @return True if the button was released, false otherwise.
@@ -4780,21 +4758,13 @@ public abstract class EngineFrame extends JFrame {
     /**
      * Returns whether a gamepad button is not pressed.
      * 
-     * Note: the entire gamepad management mechanism is based on an
-     * implementation where the bottom triggers, both left (L2/LT)
-     * and right (R2/RT), work by varying the Z axis in the range -1.0 to 1.0.
-     * Using old/standard controllers for Windows.
-     * 
-     * The left trigger varies Z from 0.0 (not pressed) to 1.0 (fully pressed).
-     * The right trigger varies Z from 0.0 (not pressed) to -1.0 (fully pressed).
-     * 
-     * When both triggers are not pressed, the Z value is 0.0, and
-     * when both are fully pressed, the Z value is also 0.0, since
-     * they cancel each other out.
-     * 
-     * Therefore, pressed/not-pressed checks do not work
-     * properly for these buttons.
-     * 
+     * The rear triggers (L2/LT and R2/RT) are independent analog inputs.
+     * Their pressure is available through {@link #GAMEPAD_AXIS_LEFT_TRIGGER}
+     * and {@link #GAMEPAD_AXIS_RIGHT_TRIGGER} (0.0 released .. 1.0 fully pressed);
+     * as buttons ({@link #GAMEPAD_BUTTON_LEFT_TRIGGER_2},
+     * {@link #GAMEPAD_BUTTON_RIGHT_TRIGGER_2}) they report pressed once the
+     * pressure reaches 0.5.
+     *
      * @param gamepadId The gamepad identifier.
      * @param button The button.
      * @return True if the button is not pressed, false otherwise.
@@ -4806,21 +4776,13 @@ public abstract class EngineFrame extends JFrame {
     /**
      * Returns the movement value of a gamepad axis.
      * 
-     * Note: the entire gamepad management mechanism is based on an
-     * implementation where the bottom triggers, both left (L2/LT)
-     * and right (R2/RT), work by varying the Z axis in the range -1.0 to 1.0.
-     * Using old/standard controllers for Windows.
-     * 
-     * The left trigger varies Z from 0.0 (not pressed) to 1.0 (fully pressed).
-     * The right trigger varies Z from 0.0 (not pressed) to -1.0 (fully pressed).
-     * 
-     * When both triggers are not pressed, the Z value is 0.0, and
-     * when both are fully pressed, the Z value is also 0.0, since
-     * they cancel each other out.
-     * 
-     * Therefore, pressed/not-pressed checks do not work
-     * properly for these buttons.
-     * 
+     * The rear triggers (L2/LT and R2/RT) are independent analog inputs.
+     * Their pressure is available through {@link #GAMEPAD_AXIS_LEFT_TRIGGER}
+     * and {@link #GAMEPAD_AXIS_RIGHT_TRIGGER} (0.0 released .. 1.0 fully pressed);
+     * as buttons ({@link #GAMEPAD_BUTTON_LEFT_TRIGGER_2},
+     * {@link #GAMEPAD_BUTTON_RIGHT_TRIGGER_2}) they report pressed once the
+     * pressure reaches 0.5.
+     *
      * @param gamepadId The gamepad identifier.
      * @param axis The axis.
      * @return The movement value of a gamepad axis.
@@ -6015,59 +5977,52 @@ public abstract class EngineFrame extends JFrame {
      * @author Prof. Dr. David Buzatto
      */
     private class GamepadInputManager {
-    
-        private List<Controller> foundControllers;
+
+        /** Analog pressure (0..1) at/above which a trigger counts as a pressed button. */
+        private static final double TRIGGER_BUTTON_THRESHOLD = 0.5;
+
         private Gamepad[] gamepads;
+        private boolean sdlInitialized;
+        private int boundControllers;
 
         public GamepadInputManager() {
-            createGamepadEnvinronment();
-        }
-
-        /**
-         * Prepares the environment for 4 gamepads.
-         */
-        private void createGamepadEnvinronment() {
-
             gamepads = new Gamepad[4];
-
             for ( int i = 0; i < gamepads.length; i++ ) {
                 gamepads[i] = new Gamepad( i );
             }
-
-            searchForControllers();
-
         }
 
         /**
-         * Searches for available controllers of type Controller.Type.GAMEPAD.
-         * Up to four gamepads are handled.
+         * Initializes SDL and binds up to four connected game controllers.
+         * Called once, from the game loop thread, on the first cycle.
          */
-        private void searchForControllers() {
-            
-            foundControllers = new ArrayList<>();
-            
+        private void initializeSDL() {
+
             try {
-                
-                Controller[] controllers = ControllerEnvironment.getDefaultEnvironment().getControllers();
 
-                for ( int i = 0; i < controllers.length; i++ ) {
-
-                    Controller controller = controllers[i];
-
-                    if ( controller.getType() == Controller.Type.GAMEPAD ) {
-                        foundControllers.add( controller );
-                        gamepads[foundControllers.size()-1].setName( controller.getName() );
-                    }
-
-                    if ( foundControllers.size() == 4 ) {
-                        break;
-                    }
-
+                if ( SDL.SDL_Init( SDL.SDL_INIT_GAMECONTROLLER ) != 0 ) {
+                    traceLogError( "Could not initialize SDL for gamepad handling: %s", SDL.SDL_GetError() );
+                    sdlInitialized = true;   // do not retry every frame
+                    return;
                 }
-                
-            } catch ( Exception exc ) {
-                traceLogError( CoreUtils.stackTraceToString( exc ) );
+
+                int deviceCount = SDL.SDL_NumJoysticks();
+
+                for ( int i = 0; i < deviceCount && boundControllers < gamepads.length; i++ ) {
+                    if ( SDL.SDL_IsGameController( i ) ) {
+                        SDL_GameController controller = SDL_GameController.GameControllerOpen( i );
+                        Gamepad gamepad = gamepads[boundControllers++];
+                        gamepad.setController( controller );
+                        gamepad.setName( SDL_GameController.GameControllerNameForIndex( i ) );
+                    }
+                }
+
+            } catch ( Throwable exc ) {
+                // native library missing or failed to load: run without gamepad support
+                traceLogError( "Could not initialize gamepad support: %s", exc );
             }
+
+            sdlInitialized = true;
 
         }
 
@@ -6076,136 +6031,104 @@ public abstract class EngineFrame extends JFrame {
          */
         private void acquireAllGamepadData() {
 
-            int i = 0;
+            SDL_GameController.GameControllerUpdate();
 
-            for ( Controller c : foundControllers ) {
-                acquireGamepadData( c, gamepads[i++] );
+            for ( int i = 0; i < boundControllers; i++ ) {
+                acquireGamepadData( gamepads[i] );
             }
 
         }
-        
+
         /**
-         * Processes a Controller and populates the corresponding gamepad.
-         * At most 20 common buttons are used, which already exceeds the
-         * number of buttons on a standard gamepad.
+         * Reads the current SDL state of one controller into its Gamepad.
          */
-        private void acquireGamepadData( Controller controller, Gamepad gamepad ) {
+        private void acquireGamepadData( Gamepad gamepad ) {
 
-            // if there is data
-            if ( controller.poll() ) {
+            SDL_GameController controller = gamepad.getController();
 
-                // configure as available
-                gamepad.setAvailable( true );
-
-                // iterate over all controller components
-                net.java.games.input.Component[] components = controller.getComponents();
-
-                for ( int i = 0; i < components.length; i++ ) {
-
-                    Component component = components[i];
-                    Identifier componentIdentifier = component.getIdentifier();
-                    
-                    // buttons contain only numbers in the name
-                    if ( componentIdentifier.getName().matches( "^[0-9]*$" ) ) {
-
-                        // is the button pressed?
-                        boolean isPressed = true;
-                        if ( component.getPollData() == 0.0f ) {
-                            isPressed = false;
-                        }
-
-                        // button index
-                        int buttonIndex = Integer.parseInt( component.getIdentifier().toString() );
-                        
-                        if ( buttonIndex < 20 ) {
-                            gamepad.setButtonState( buttonIndex, isPressed );
-                        }
-
-                        // skip to the next iteration, no need to test other types
-                        continue;
-
-                    }
-
-                    // hat switch
-                    if ( componentIdentifier == Component.Identifier.Axis.POV ) {
-                        float hatSwitch = component.getPollData();
-                        int dpadCode = (int) ( component.getPollData() * 1000 ) / 125;
-                        gamepad.setHatSwitch( hatSwitch );
-                        gamepad.resetHatSwitchButtonsState();
-                        gamepad.setHatSwitchButtonState( dpadCode, true );
-                        continue;
-                    }
-
-                    // axes
-                    if ( component.isAnalog() ) {
-
-                        float axisValue = component.getPollData();
-
-                        // x axis
-                        if ( componentIdentifier == Component.Identifier.Axis.X ) {
-                            gamepad.setX( axisValue );
-                            continue;
-                        }
-
-                        // y axis
-                        if ( componentIdentifier == Component.Identifier.Axis.Y ) {
-                            gamepad.setY( axisValue );
-                            continue;
-                        }
-
-                        // z axis
-                        if ( componentIdentifier == Component.Identifier.Axis.Z ) {                            
-                            gamepad.setZ( axisValue );
-                            continue;
-                        }
-
-                        // rx axis
-                        if ( componentIdentifier == Component.Identifier.Axis.RX ) {
-                            gamepad.setRx( axisValue );
-                            continue;
-                        }
-
-                        // ry axis
-                        if ( componentIdentifier == Component.Identifier.Axis.RY ) {
-                            gamepad.setRy( axisValue );
-                            continue;
-                        }
-
-                        // rz axis
-                        if ( componentIdentifier == Component.Identifier.Axis.RZ ) {
-                            gamepad.setRz( axisValue );
-                            continue;
-                        }
-
-                    }
-
-                }
-
-                //System.out.println( gamepad );
-
-            } else {
-                traceLogError( "Gamepad %d disconnected", gamepad.getId() + 1 );
+            if ( controller == null || !controller.getAttached() ) {
+                gamepad.setAvailable( false );
+                return;
             }
+
+            gamepad.setAvailable( true );
+
+            // face / shoulder / thumb / center buttons
+            gamepad.setButtonState( GAMEPAD_BUTTON_RIGHT_FACE_DOWN,  controller.getButton( SDL.SDL_CONTROLLER_BUTTON_A ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_RIGHT_FACE_RIGHT, controller.getButton( SDL.SDL_CONTROLLER_BUTTON_B ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_RIGHT_FACE_LEFT,  controller.getButton( SDL.SDL_CONTROLLER_BUTTON_X ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_RIGHT_FACE_UP,    controller.getButton( SDL.SDL_CONTROLLER_BUTTON_Y ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_LEFT_TRIGGER_1,   controller.getButton( SDL.SDL_CONTROLLER_BUTTON_LEFTSHOULDER ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_RIGHT_TRIGGER_1,  controller.getButton( SDL.SDL_CONTROLLER_BUTTON_RIGHTSHOULDER ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_MIDDLE_LEFT,      controller.getButton( SDL.SDL_CONTROLLER_BUTTON_BACK ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_MIDDLE_RIGHT,     controller.getButton( SDL.SDL_CONTROLLER_BUTTON_START ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_LEFT_THUMB,       controller.getButton( SDL.SDL_CONTROLLER_BUTTON_LEFTSTICK ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_RIGHT_THUMB,      controller.getButton( SDL.SDL_CONTROLLER_BUTTON_RIGHTSTICK ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_MIDDLE,           controller.getButton( SDL.SDL_CONTROLLER_BUTTON_GUIDE ) );
+
+            // dpad
+            gamepad.setButtonState( GAMEPAD_BUTTON_LEFT_FACE_UP,     controller.getButton( SDL.SDL_CONTROLLER_BUTTON_DPAD_UP ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_LEFT_FACE_DOWN,   controller.getButton( SDL.SDL_CONTROLLER_BUTTON_DPAD_DOWN ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_LEFT_FACE_LEFT,   controller.getButton( SDL.SDL_CONTROLLER_BUTTON_DPAD_LEFT ) );
+            gamepad.setButtonState( GAMEPAD_BUTTON_LEFT_FACE_RIGHT,  controller.getButton( SDL.SDL_CONTROLLER_BUTTON_DPAD_RIGHT ) );
+
+            // sticks
+            gamepad.setLeftStickX(  controller.getAxis( SDL.SDL_CONTROLLER_AXIS_LEFTX ) );
+            gamepad.setLeftStickY(  controller.getAxis( SDL.SDL_CONTROLLER_AXIS_LEFTY ) );
+            gamepad.setRightStickX( controller.getAxis( SDL.SDL_CONTROLLER_AXIS_RIGHTX ) );
+            gamepad.setRightStickY( controller.getAxis( SDL.SDL_CONTROLLER_AXIS_RIGHTY ) );
+
+            // rear triggers: analog pressure and derived digital state
+            double leftTrigger = controller.getAxis( SDL.SDL_CONTROLLER_AXIS_TRIGGERLEFT );
+            double rightTrigger = controller.getAxis( SDL.SDL_CONTROLLER_AXIS_TRIGGERRIGHT );
+            gamepad.setLeftTrigger( leftTrigger );
+            gamepad.setRightTrigger( rightTrigger );
+            gamepad.setTriggerButtonState( 0, leftTrigger >= TRIGGER_BUTTON_THRESHOLD );
+            gamepad.setTriggerButtonState( 1, rightTrigger >= TRIGGER_BUTTON_THRESHOLD );
 
         }
 
         /**
-         * Advances to the next cycle.
+         * Advances to the next cycle, initializing SDL on the first call.
          */
         public void prepareToNextCycle() {
-            if ( !foundControllers.isEmpty() ) {
-                prepareGamepadsToNextCycle();
-                acquireAllGamepadData();
+
+            if ( !sdlInitialized ) {
+                initializeSDL();
             }
+
+            if ( boundControllers == 0 ) {
+                return;
+            }
+
+            for ( int i = 0; i < boundControllers; i++ ) {
+                gamepads[i].setAvailable( false );
+                gamepads[i].copyLastState();
+            }
+
+            acquireAllGamepadData();
+
         }
 
         /**
-         * Prepares the gamepads for a new cycle.
+         * Releases SDL. Safe to call more than once. The EXIT_ON_CLOSE/ESC
+         * path calls System.exit(0) and bypasses this, which is fine, since
+         * the OS reclaims native resources on process exit.
          */
-        private void prepareGamepadsToNextCycle() {
-            for ( Gamepad gp : gamepads ) {
-                gp.setAvailable( false );
-                gp.copyLastState();
+        public void shutdown() {
+            if ( sdlInitialized ) {
+                try {
+                    for ( int i = 0; i < boundControllers; i++ ) {
+                        SDL_GameController controller = gamepads[i].getController();
+                        if ( controller != null ) {
+                            controller.close();
+                        }
+                    }
+                    SDL.SDL_Quit();
+                } catch ( Throwable exc ) {
+                    traceLogError( "Error while shutting down gamepad support: %s", exc );
+                }
+                sdlInitialized = false;
             }
         }
 
@@ -6237,57 +6160,44 @@ public abstract class EngineFrame extends JFrame {
         }
 
         /**
+         * True for the button ids backed directly by the buttons state array,
+         * i.e. every button except the rear triggers (handled as derived
+         * digital state from their analog pressure).
+         */
+        private boolean isRegularButton( int button ) {
+            return ( button >= GAMEPAD_BUTTON_RIGHT_FACE_DOWN && button <= GAMEPAD_BUTTON_LEFT_FACE_UP )
+                || button == GAMEPAD_BUTTON_MIDDLE;
+        }
+
+        /**
          * Returns whether a gamepad button was pressed once.
-         * 
+         *
          * @param gamepadId The gamepad identifier.
          * @param button The button.
          * @return True if the button was pressed once, false otherwise.
          */
         public boolean isGamepadButtonPressed( int gamepadId, int button ) {
-            
+
             if ( isGamepadAvailable( gamepadId ) ) {
-                
+
                 Gamepad g = gamepads[gamepadId];
 
-                // "normal" buttons
-                if ( button >= 0 && button <= 9 ) {
+                if ( isRegularButton( button ) ) {
                     return g.isButtonDown( button ) && !g.isLastButtonDown( button );
                 }
-                
+
                 // left trigger
-                if ( button == 44 ) {
+                if ( button == GAMEPAD_BUTTON_LEFT_TRIGGER_2 ) {
                     return g.isTriggerButtonDown( 0 ) && !g.isLastTriggerButtonDown( 0 );
                 }
 
                 // right trigger
-                if ( button == 55 ) {
+                if ( button == GAMEPAD_BUTTON_RIGHT_TRIGGER_2 ) {
                     return g.isTriggerButtonDown( 1 ) && !g.isLastTriggerButtonDown( 1 );
                 }
 
-                // dpad
-                if ( button >= 10 && button <= 13 ) {
-                    switch ( button ) {
-                        case GAMEPAD_BUTTON_LEFT_FACE_UP:
-                            return ( g.isHatSwitchButtonDown( 1 ) && !g.isLastHatSwitchButtonDown( 1 ) ) ||
-                                   ( g.isHatSwitchButtonDown( 2 ) && !g.isLastHatSwitchButtonDown( 2 ) ) ||
-                                   ( g.isHatSwitchButtonDown( 3 ) && !g.isLastHatSwitchButtonDown( 3 ) );
-                        case GAMEPAD_BUTTON_LEFT_FACE_RIGHT:
-                            return ( g.isHatSwitchButtonDown( 3 ) && !g.isLastHatSwitchButtonDown( 3 ) ) ||
-                                   ( g.isHatSwitchButtonDown( 4 ) && !g.isLastHatSwitchButtonDown( 4 ) ) ||
-                                   ( g.isHatSwitchButtonDown( 5 ) && !g.isLastHatSwitchButtonDown( 5 ) );
-                        case GAMEPAD_BUTTON_LEFT_FACE_DOWN:
-                            return ( g.isHatSwitchButtonDown( 5 ) && !g.isLastHatSwitchButtonDown( 5 ) ) ||
-                                   ( g.isHatSwitchButtonDown( 6 ) && !g.isLastHatSwitchButtonDown( 6 ) ) ||
-                                   ( g.isHatSwitchButtonDown( 7 ) && !g.isLastHatSwitchButtonDown( 7 ) );
-                        case GAMEPAD_BUTTON_LEFT_FACE_LEFT:
-                            return ( g.isHatSwitchButtonDown( 7 ) && !g.isLastHatSwitchButtonDown( 7 ) ) ||
-                                   ( g.isHatSwitchButtonDown( 8 ) && !g.isLastHatSwitchButtonDown( 8 ) ) ||
-                                   ( g.isHatSwitchButtonDown( 1 ) && !g.isLastHatSwitchButtonDown( 1 ) );
-                    }
-                }
-                
             }
-            
+
             return false;
 
         }
@@ -6300,54 +6210,29 @@ public abstract class EngineFrame extends JFrame {
          * @return True if the button is pressed, false otherwise.
          */
         public boolean isGamepadButtonDown( int gamepadId, int button ) {
-            
+
             if ( isGamepadAvailable( gamepadId ) ) {
-                
+
                 Gamepad g = gamepads[gamepadId];
 
-                // "normal" buttons
-                if ( button >= 0 && button <= 9 ) {
+                if ( isRegularButton( button ) ) {
                     return g.isButtonDown( button );
                 }
 
                 // left trigger
-                if ( button == 44 ) {
-                    g.setTriggerButtonState( 0, g.getZ() > 0.0 );
+                if ( button == GAMEPAD_BUTTON_LEFT_TRIGGER_2 ) {
                     return g.isTriggerButtonDown( 0 );
                 }
 
                 // right trigger
-                if ( button == 55 ) {
-                    g.setTriggerButtonState( 1, g.getZ() < -0.0001 );
+                if ( button == GAMEPAD_BUTTON_RIGHT_TRIGGER_2 ) {
                     return g.isTriggerButtonDown( 1 );
                 }
 
-                // dpad
-                if ( button >= 10 && button <= 13 ) {
-                    switch ( button ) {
-                        case GAMEPAD_BUTTON_LEFT_FACE_UP:
-                            return g.isHatSwitchButtonDown( 1 ) || 
-                                   g.isHatSwitchButtonDown( 2 ) || 
-                                   g.isHatSwitchButtonDown( 3 );
-                        case GAMEPAD_BUTTON_LEFT_FACE_RIGHT:
-                            return g.isHatSwitchButtonDown( 3 ) || 
-                                   g.isHatSwitchButtonDown( 4 ) || 
-                                   g.isHatSwitchButtonDown( 5 );
-                        case GAMEPAD_BUTTON_LEFT_FACE_DOWN:
-                            return g.isHatSwitchButtonDown( 5 ) || 
-                                   g.isHatSwitchButtonDown( 6 ) || 
-                                   g.isHatSwitchButtonDown( 7 );
-                        case GAMEPAD_BUTTON_LEFT_FACE_LEFT:
-                            return g.isHatSwitchButtonDown( 7 ) || 
-                                   g.isHatSwitchButtonDown( 8 ) ||
-                                   g.isHatSwitchButtonDown( 1 );
-                    }
-                }
-            
             }
-            
+
             return false;
-            
+
         }
 
         /**
@@ -6358,52 +6243,29 @@ public abstract class EngineFrame extends JFrame {
          * @return True if the button was released, false otherwise.
          */
         public boolean isGamepadButtonReleased( int gamepadId, int button ) {
-            
+
             if ( isGamepadAvailable( gamepadId ) ) {
-                
+
                 Gamepad g = gamepads[gamepadId];
 
-                // "normal" buttons
-                if ( button >= 0 && button <= 9 ) {
+                if ( isRegularButton( button ) ) {
                     return !g.isButtonDown( button ) && g.isLastButtonDown( button );
                 }
-                
+
                 // left trigger
-                if ( button == 44 ) {
+                if ( button == GAMEPAD_BUTTON_LEFT_TRIGGER_2 ) {
                     return !g.isTriggerButtonDown( 0 ) && g.isLastTriggerButtonDown( 0 );
                 }
 
                 // right trigger
-                if ( button == 55 ) {
+                if ( button == GAMEPAD_BUTTON_RIGHT_TRIGGER_2 ) {
                     return !g.isTriggerButtonDown( 1 ) && g.isLastTriggerButtonDown( 1 );
                 }
 
-                // dpad
-                if ( button >= 10 && button <= 13 ) {
-                    switch ( button ) {
-                        case GAMEPAD_BUTTON_LEFT_FACE_UP:
-                            return ( !g.isHatSwitchButtonDown( 1 ) && g.isLastHatSwitchButtonDown( 1 ) ) ||
-                                   ( !g.isHatSwitchButtonDown( 2 ) && g.isLastHatSwitchButtonDown( 2 ) ) ||
-                                   ( !g.isHatSwitchButtonDown( 3 ) && g.isLastHatSwitchButtonDown( 3 ) );
-                        case GAMEPAD_BUTTON_LEFT_FACE_RIGHT:
-                            return ( !g.isHatSwitchButtonDown( 3 ) && g.isLastHatSwitchButtonDown( 3 ) ) ||
-                                   ( !g.isHatSwitchButtonDown( 4 ) && g.isLastHatSwitchButtonDown( 4 ) ) ||
-                                   ( !g.isHatSwitchButtonDown( 5 ) && g.isLastHatSwitchButtonDown( 5 ) );
-                        case GAMEPAD_BUTTON_LEFT_FACE_DOWN:
-                            return ( !g.isHatSwitchButtonDown( 5 ) && g.isLastHatSwitchButtonDown( 5 ) ) ||
-                                   ( !g.isHatSwitchButtonDown( 6 ) && g.isLastHatSwitchButtonDown( 6 ) ) ||
-                                   ( !g.isHatSwitchButtonDown( 7 ) && g.isLastHatSwitchButtonDown( 7 ) );
-                        case GAMEPAD_BUTTON_LEFT_FACE_LEFT:
-                            return ( !g.isHatSwitchButtonDown( 7 ) && g.isLastHatSwitchButtonDown( 7 ) ) ||
-                                   ( !g.isHatSwitchButtonDown( 8 ) && g.isLastHatSwitchButtonDown( 8 ) ) ||
-                                   ( !g.isHatSwitchButtonDown( 1 ) && g.isLastHatSwitchButtonDown( 1 ) );
-                    }
-                }
-                
             }
-            
+
             return false;
-            
+
         }
 
         /**
@@ -6430,30 +6292,32 @@ public abstract class EngineFrame extends JFrame {
         public double getGamepadAxisMovement( int gamepadId, int axis ) {
 
             if ( isGamepadAvailable( gamepadId ) ) {
-                
+
+                Gamepad g = gamepads[gamepadId];
+
                 switch ( axis ) {
                     case GAMEPAD_AXIS_LEFT_X:
-                        return gamepads[gamepadId].getX();
+                        return g.getLeftStickX();
                     case GAMEPAD_AXIS_LEFT_Y:
-                        return gamepads[gamepadId].getY();
+                        return g.getLeftStickY();
                     case GAMEPAD_AXIS_RIGHT_X:
-                        return gamepads[gamepadId].getRx();
+                        return g.getRightStickX();
                     case GAMEPAD_AXIS_RIGHT_Y:
-                        return gamepads[gamepadId].getRy();
+                        return g.getRightStickY();
                     case GAMEPAD_AXIS_Z:
-                        return gamepads[gamepadId].getZ();
+                        return g.getLeftTrigger() - g.getRightTrigger();
                     case GAMEPAD_AXIS_LEFT_TRIGGER:
-                        return gamepads[gamepadId].getZ();
+                        return g.getLeftTrigger();
                     case GAMEPAD_AXIS_RIGHT_TRIGGER:
-                        return -gamepads[gamepadId].getZ();
+                        return g.getRightTrigger();
                 }
-                
+
             }
-            
+
             return 0;
 
         }
-    
+
     }
     
     
@@ -6465,34 +6329,31 @@ public abstract class EngineFrame extends JFrame {
      */
     private class Gamepad {
 
-        private static final int HAT_SWITCH_BUTTONS_LENGTH = 9;
-        private static final boolean[] HAT_SWITCH_DEFAULT_VALUES = new boolean[HAT_SWITCH_BUTTONS_LENGTH];
-
         private int id;
         private String name;
         private boolean available;
+
+        /** SDL handle; null until this slot is bound to a physical controller. */
+        private SDL_GameController controller;
+
         private boolean[] buttonsState;
         private boolean[] previousButtonsState;
         private boolean[] triggerButtonsState;
         private boolean[] previousTriggerButtonsState;
-        private boolean[] hatSwitchButtonsState;
-        private boolean[] previousHatSwitchButtonsState;
-        private float hatSwitch;
-        private double x;
-        private double y;
-        private double z;
-        private double rx;
-        private double ry;
-        private double rz;
+
+        private double leftStickX;
+        private double leftStickY;
+        private double rightStickX;
+        private double rightStickY;
+        private double leftTrigger;
+        private double rightTrigger;
 
         public Gamepad( int id ) {
             this.id = id;
             this.buttonsState = new boolean[20];
             this.previousButtonsState = new boolean[20];
             this.triggerButtonsState = new boolean[2];
-            this.previousTriggerButtonsState = new boolean[20];
-            this.hatSwitchButtonsState = new boolean[HAT_SWITCH_BUTTONS_LENGTH];
-            this.previousHatSwitchButtonsState = new boolean[HAT_SWITCH_BUTTONS_LENGTH];
+            this.previousTriggerButtonsState = new boolean[2];
         }
 
         public void setButtonState( int button, boolean value ) {
@@ -6500,21 +6361,11 @@ public abstract class EngineFrame extends JFrame {
                 buttonsState[button] = value;
             }
         }
-        
+
         public void setTriggerButtonState( int button, boolean value ) {
             if ( button < triggerButtonsState.length ) {
                 triggerButtonsState[button] = value;
             }
-        }
-
-        public void setHatSwitchButtonState( int button, boolean value ) {
-            if ( button < hatSwitchButtonsState.length ) {
-                hatSwitchButtonsState[button] = value;
-            }
-        }
-
-        public void resetHatSwitchButtonsState() {
-            System.arraycopy( HAT_SWITCH_DEFAULT_VALUES, 0, hatSwitchButtonsState, 0, HAT_SWITCH_BUTTONS_LENGTH );
         }
 
         public boolean isButtonDown( int button ) {
@@ -6523,21 +6374,21 @@ public abstract class EngineFrame extends JFrame {
             }
             return false;
         }
-        
+
         public boolean isLastButtonDown( int button ) {
             if ( button < previousButtonsState.length ) {
                 return previousButtonsState[button];
             }
             return false;
         }
-        
+
         public boolean isTriggerButtonDown( int button ) {
             if ( button < triggerButtonsState.length ) {
                 return triggerButtonsState[button];
             }
             return false;
         }
-        
+
         public boolean isLastTriggerButtonDown( int button ) {
             if ( button < previousTriggerButtonsState.length ) {
                 return previousTriggerButtonsState[button];
@@ -6545,80 +6396,65 @@ public abstract class EngineFrame extends JFrame {
             return false;
         }
 
-        public boolean isHatSwitchButtonDown( int button ) {
-            if ( button < hatSwitchButtonsState.length ) {
-                return hatSwitchButtonsState[button];
-            }
-            return false;
-        }
-        
-        public boolean isLastHatSwitchButtonDown( int button ) {
-            if ( button < previousHatSwitchButtonsState.length ) {
-                return previousHatSwitchButtonsState[button];
-            }
-            return false;
-        }
-
         public void copyLastState() {
             System.arraycopy( buttonsState, 0, previousButtonsState, 0, buttonsState.length );
             System.arraycopy( triggerButtonsState, 0, previousTriggerButtonsState, 0, triggerButtonsState.length );
-            System.arraycopy( hatSwitchButtonsState, 0, previousHatSwitchButtonsState, 0, hatSwitchButtonsState.length );
         }
 
-        public float getHatSwitch() {
-            return hatSwitch;
+        public SDL_GameController getController() {
+            return controller;
         }
 
-        public void setHatSwitch( float hatSwitch ) {
-            this.hatSwitch = hatSwitch;
+        public void setController( SDL_GameController controller ) {
+            this.controller = controller;
         }
 
-        public double getX() {
-            return x;
+        public double getLeftStickX() {
+            return leftStickX;
         }
 
-        public void setX( double x ) {
-            this.x = x;
+        public void setLeftStickX( double leftStickX ) {
+            this.leftStickX = leftStickX;
         }
 
-        public double getY() {
-            return y;
+        public double getLeftStickY() {
+            return leftStickY;
         }
 
-        public void setY( double y ) {
-            this.y = y;
+        public void setLeftStickY( double leftStickY ) {
+            this.leftStickY = leftStickY;
         }
 
-        public double getZ() {
-            return z;
+        public double getRightStickX() {
+            return rightStickX;
         }
 
-        public void setZ( double z ) {
-            this.z = z;
+        public void setRightStickX( double rightStickX ) {
+            this.rightStickX = rightStickX;
         }
 
-        public double getRx() {
-            return rx;
+        public double getRightStickY() {
+            return rightStickY;
         }
 
-        public void setRx( double rx ) {
-            this.rx = rx;
+        public void setRightStickY( double rightStickY ) {
+            this.rightStickY = rightStickY;
         }
 
-        public double getRy() {
-            return ry;
+        public double getLeftTrigger() {
+            return leftTrigger;
         }
 
-        public void setRy( double ry ) {
-            this.ry = ry;
+        public void setLeftTrigger( double leftTrigger ) {
+            this.leftTrigger = leftTrigger;
         }
 
-        public double getRz() {
-            return rz;
+        public double getRightTrigger() {
+            return rightTrigger;
         }
 
-        public void setRz( double rz ) {
-            this.rz = rz;
+        public void setRightTrigger( double rightTrigger ) {
+            this.rightTrigger = rightTrigger;
         }
 
         public int getId() {
@@ -6655,20 +6491,13 @@ public abstract class EngineFrame extends JFrame {
                 }
             }
 
-            sb.append( "\nhat switch: " ).append( hatSwitch ).append( " " );
-            for ( int i = 0; i < hatSwitchButtonsState.length; i++ ) {
-                if ( hatSwitchButtonsState[i] ) {
-                    sb.append( String.format( "%d ", i ) );
-                }
-            }
-
             sb.append( "\naxes: " )
-                .append( String.format( "x: %.2f ", x ) )
-                .append( String.format( "y: %.2f ", y ) )
-                .append( String.format( "z: %.2f ", z ) )
-                .append( String.format( "rx: %.2f ", rx ) )
-                .append( String.format( "ry: %.2f ", ry ) )
-                .append( String.format( "rz: %.2f ", rz ) );
+                .append( String.format( "leftStickX: %.2f ", leftStickX ) )
+                .append( String.format( "leftStickY: %.2f ", leftStickY ) )
+                .append( String.format( "rightStickX: %.2f ", rightStickX ) )
+                .append( String.format( "rightStickY: %.2f ", rightStickY ) )
+                .append( String.format( "leftTrigger: %.2f ", leftTrigger ) )
+                .append( String.format( "rightTrigger: %.2f ", rightTrigger ) );
 
             return sb.toString();
 
@@ -7095,43 +6924,55 @@ public abstract class EngineFrame extends JFrame {
     public static final int GAMEPAD_BUTTON_LEFT_TRIGGER_1    = 4;
     
     /** Bottom-left trigger. PS: L2 / Xbox: LT */
-    public static final int GAMEPAD_BUTTON_LEFT_TRIGGER_2    = 44;
-    
+    public static final int GAMEPAD_BUTTON_LEFT_TRIGGER_2    = 14;
+
     /** Top-right trigger. PS: R1 / Xbox: RB */
     public static final int GAMEPAD_BUTTON_RIGHT_TRIGGER_1   = 5;
-    
+
     /** Bottom-right trigger. PS: R2 / Xbox: RT */
-    public static final int GAMEPAD_BUTTON_RIGHT_TRIGGER_2   = 55;
-    
+    public static final int GAMEPAD_BUTTON_RIGHT_TRIGGER_2   = 15;
+
     /** Left center button. "Select". */
     public static final int GAMEPAD_BUTTON_MIDDLE_LEFT       = 6;
-    
+
     /** Right center button. "Start". */
     public static final int GAMEPAD_BUTTON_MIDDLE_RIGHT      = 7;
-    
+
     /** Left analog stick button. */
     public static final int GAMEPAD_BUTTON_LEFT_THUMB        = 8;
-    
+
     /** Right analog stick button. */
     public static final int GAMEPAD_BUTTON_RIGHT_THUMB       = 9;
-    
+
+    /** Center button. PS: PS Button / Xbox: Guide / Nintendo: Home. */
+    public static final int GAMEPAD_BUTTON_MIDDLE            = 16;
+
     //**************************************************************************
     // Constants for gamepad axes.
     //**************************************************************************
-    
+
     /** X axis of the left analog stick. */
     public static final int GAMEPAD_AXIS_LEFT_X              = 0;
-    
+
     /** Y axis of the left analog stick. */
     public static final int GAMEPAD_AXIS_LEFT_Y              = 1;
-    
+
     /** X axis of the right analog stick. */
     public static final int GAMEPAD_AXIS_RIGHT_X             = 2;
-    
+
     /** Y axis of the right analog stick. */
     public static final int GAMEPAD_AXIS_RIGHT_Y             = 3;
-    
-    /** Z axis (bottom triggers). Ranges between [1..-1] */
+
+    /**
+     * Z axis (bottom triggers). Ranges between [1..-1].
+     *
+     * @deprecated Legacy of the old JInput/DirectInput shared-axis model.
+     * The left and right triggers are now independent axes; use
+     * {@link #GAMEPAD_AXIS_LEFT_TRIGGER} and {@link #GAMEPAD_AXIS_RIGHT_TRIGGER}.
+     * This value is synthesized as {@code leftTrigger - rightTrigger} and kept
+     * only for backward compatibility.
+     */
+    @Deprecated
     public static final int GAMEPAD_AXIS_Z                   = 4;
     
     /** Left trigger pressure level. Ranges between [0..1]. */
