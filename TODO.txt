@@ -1,8 +1,9 @@
-Desligar consumo de inputs de joysticks e periféricos caso as libs não estejam disponíveis?
+Preparação para substituição da JInput pela Jamepad + sdl2gdx.
+    Adição das bibliotecas;
+    Adaptação do código;
+    Remoção da JInput;
+    Ajuste dos templates.
 
 Bug:
     Sistema de entrada se perdendo ao, por exemplo, redimensionar uma EngineFrame, tentando fechar uma EngineFrame com default close operation com DO_NOTHING, etc.
         Talvez sobrescrever os registradores de evento da janela, descartando o que acontece?
-    Mudar o sistema de input inteiro para usar a JInput?
-    
-Realizar testes com joysticks do playstation.
