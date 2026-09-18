@@ -1,3 +1,0 @@
-Bug:
-    Sistema de entrada se perdendo ao, por exemplo, redimensionar uma EngineFrame, tentando fechar uma EngineFrame com default close operation com DO_NOTHING etc.
-        Talvez sobrescrever os registradores de evento da janela, descartando o que acontece?

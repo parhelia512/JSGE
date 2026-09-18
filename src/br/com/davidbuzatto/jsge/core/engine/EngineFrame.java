@@ -59,6 +59,8 @@ import java.awt.RenderingHints;
 import java.awt.Robot;
 import java.awt.Shape;
 import java.awt.Toolkit;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -444,11 +446,52 @@ public abstract class EngineFrame extends JFrame {
 
         setLocationRelativeTo( null );
 
-        addWindowListener( new WindowAdapter() {
+        WindowAdapter windowAdapter = new WindowAdapter() {
+
             @Override
             public void windowClosing( WindowEvent e ) {
-                running = false;
+                switch ( getDefaultCloseOperation() ) {
+                    case DISPOSE_ON_CLOSE:
+                    case EXIT_ON_CLOSE:
+                        running = false;
+                        break;
+                    case HIDE_ON_CLOSE:
+                    case DO_NOTHING_ON_CLOSE:
+                    default:
+                        break;
+                }
             }
+
+            @Override
+            public void windowLostFocus( WindowEvent e ) {
+                // an external window (a modal dialog, another application, etc.)
+                // took focus away; any key/mouse button held at that moment may
+                // never get its matching release event delivered to drawingPanel,
+                // so resync every GameAction back to "released" here.
+                inputManager.resetAllGameActions();
+            }
+
+        };
+
+        addWindowListener( windowAdapter );
+        addWindowFocusListener( windowAdapter );
+
+        addComponentListener( new ComponentAdapter() {
+
+            @Override
+            public void componentResized( ComponentEvent e ) {
+                // an interactive OS-level resize runs its own nested event
+                // loop and can swallow a key/mouse release the same way a
+                // focus change does; resync once it settles.
+                inputManager.resetAllGameActions();
+            }
+
+            @Override
+            public void componentMoved( ComponentEvent e ) {
+                // same as above, for an interactive move (dragging the title bar)
+                inputManager.resetAllGameActions();
+            }
+
         });
 
         // initializes the current game objects/context/variables
@@ -5517,8 +5560,10 @@ public abstract class EngineFrame extends JFrame {
         
         /**
          * Resets all GameActions so they appear as if they were not executed.
+         * Used to resync input state whenever something external (a modal
+         * dialog, focus loss, an interactive window move/resize) may have
+         * prevented a key/mouse release event from reaching this component.
          */
-        @SuppressWarnings( "unused" )
         public void resetAllGameActions() {
 
             for ( Map.Entry<Integer, List<GameAction>> e : keyActionsMap.entrySet() ) {
@@ -5899,7 +5944,7 @@ public abstract class EngineFrame extends JFrame {
         /**
          * Resets this GameAction, making it appear as if it was not pressed.
          */
-        public void reset() {
+        public synchronized void reset() {
             state = STATE_RELEASED;
             amount = 0;
         }
